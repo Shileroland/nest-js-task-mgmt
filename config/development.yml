@@ -1,0 +1,8 @@
+db:
+    host: 'localhost'
+    username: 'springstudent'
+    password: 'springstudent'
+    synchronize: true
+
+jwt:
+    secret: 'topSecret51'

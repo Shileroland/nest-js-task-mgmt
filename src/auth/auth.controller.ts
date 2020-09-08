@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { AuthService } from './auth.service';
-import { Controller, Post, Body, ValidationPipe } from '@nestjs/common';
+import {Controller, Post, Body, ValidationPipe} from '@nestjs/common';
 import { AuthCredentialsDto } from './auth-credentials.dto';
 
 @Controller('auth')
@@ -8,13 +9,19 @@ export class AuthController {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   @Post('/signUp')
   signUp(@Body(ValidationPipe) authCredentailsDto: AuthCredentialsDto) {
-    console.log(authCredentailsDto);
     return this.authService.signUp(authCredentailsDto);
   }
 
   @Post('/signIn')
-  signIn(@Body(ValidationPipe) authCredentailsDto: AuthCredentialsDto) {
+  signIn(
+    @Body(ValidationPipe) authCredentailsDto: AuthCredentialsDto,
+  ): Promise<{ accessToken: string }> {
     return this.authService.signIn(authCredentailsDto);
   }
+
+  // @Post('/test')
+  // @UseGuards(AuthGuard())
+  // test(@GetUser() user: User) {
+  //   console.log(user);
+  // }
 }
-//[{"key":"password","value":"A6tytfiIo","description":"","type":"text","enabled":true}]

@@ -1,35 +1,62 @@
+import { User } from './../auth/user.entity';
 import { Task } from './task.entity';
 import { Repository, EntityRepository } from 'typeorm';
 import { TaskStatus } from './task-status.enum';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
+import { Logger, InternalServerErrorException } from '@nestjs/common';
 
 @EntityRepository(Task)
 export class TaskRepository extends Repository<Task> {
-  async getTasks(filterDto: GetTasksFilterDto): Promise<Task[]> {
+  private logger = new Logger('Task Repository');
+  async getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
     const { status, search } = filterDto;
     const query = this.createQueryBuilder('task');
 
+    query.where('task.userId = :userId', { userId: user.id });
+
     if (status) {
-      query.andWhere('task.status = :status', {status});
+      query.andWhere('task.status = :status', { status });
     }
 
     if (search) {
-        query.andWhere('(task.title LIKE :search OR task.description LIKE:search)', {search: `%${search}%`});
+      query.andWhere(
+        '(task.title LIKE :search OR task.description LIKE:search)',
+        { search: `%${search}%` },
+      );
     }
-    const tasks = await query.getMany();
 
-    return tasks;
+    try {
+      const tasks = await query.getMany();
+      return tasks;
+    } catch (error) {
+      this.logger.error(
+        `failed to get tasks for user "${
+          user.username
+        }". Filter: ${JSON.stringify(filterDto)}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException();
+    }
   }
 
-  async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+  async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
     const { title, description } = createTaskDto;
 
     const task = new Task();
     task.title = title;
     task.description = description;
     task.status = TaskStatus.OPEN;
-    await task.save();
+    task.user = user;
+
+    try {
+      await task.save();
+    } catch (error) {
+      this.logger.error(`failed to create tasks for user "${user.username}". Data: ${JSON.stringify(createTaskDto)}`, error.stack,);
+      throw new InternalServerErrorException();
+    }
+
+    delete task.user;
     return task;
   }
 }
